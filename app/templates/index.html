@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Phishing Email Simulator - Home{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h1 class="text-center mb-0">Phishing Email Simulator</h1>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3>About the Project</h3>
+                        <p>
+                            This phishing email simulator is designed to help organizations train their employees to recognize and avoid phishing attempts. By simulating realistic phishing scenarios, users can learn to identify suspicious emails without any real security risk.
+                        </p>
+                        <p>
+                            <strong>Key Features:</strong>
+                        </p>
+                        <ul>
+                            <li>Create customizable email templates</li>
+                            <li>Target specific departments or individuals</li>
+                            <li>Track open, click, and submission rates</li>
+                            <li>Generate detailed reports</li>
+                            <li>Schedule campaigns for future deployment</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h3>Get Started</h3>
+                        <p>
+                            To begin using the Phishing Email Simulator, please register for an account or log in if you already have one.
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Register</a>
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">Login</a>
+                        </div>
+                        <hr>
+                        <div class="alert alert-info">
+                            <h5>Educational Purpose Only</h5>
+                            <p class="mb-0">
+                                This tool is intended for educational and training purposes only. Please use responsibly and only within your organization with proper authorization.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if template %}Edit Template{% else %}Create Template{% endif %} - Phishing Email Simulator
+{% endblock %}
+
+{% block styles %}
+<style>
+    .preview-pane {
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .CodeMirror {
+        height: 300px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.1/lib/codemirror.css">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>{% if template %}Edit Template{% else %}Create Email Template{% endif %}</h1>
+        <p>Design your phishing email template. You can use HTML for formatting and placeholders like {{name}} for personalization.</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">Template Editor</h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="templateForm">
+            <div class="mb-3">
+                <label for="name" class="form-label">Template Name</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ template.name if template else '' }}" required>
+                <div class="form-text">Give your template a descriptive name for easy reference.</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="subject" class="form-label">Email Subject</label>
+                <input type="text" class="form-control" id="subject" name="subject" value="{{ template.subject if template else '' }}" required>
+                <div class="form-text">The subject line of the email. Use {{name}} to include the recipient's name.</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="body" class="form-label">Email Body (HTML)</label>
+                <textarea class="form-control" id="body" name="body" rows="10" required>{{ template.body if template else '<!DOCTYPE html>\n<html>\n<head>\n    <title>Important Notification</title>\n</head>\n<body>\n    <p>Dear {{name}},</p>\n    <p>This is an important notification regarding your account.</p>\n    <p>Please click <a href="#">here</a> to verify your information.</p>\n    <p>Regards,<br>IT Department</p>\n</body>\n</html>' }}</textarea>
+                <div class="form-text">
+                    Use HTML to format your email. Include placeholders like {{name}} for personalization.
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">Cancel</a>
+                <div>
+                    <button type="button" class="btn btn-info me-2" id="previewBtn">Preview</button>
+                    <button type="submit" class="btn btn-primary">Save Template</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Email Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Subject:</strong> <span id="previewSubject"></span>
+                </div>
+                <div class="preview-pane">
+                    <iframe id="previewFrame" style="width: 100%; height: 400px; border: none;"></iframe>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.1/lib/codemirror.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.1/mode/htmlmixed/htmlmixed.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.1/mode/xml/xml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.1/mode/javascript/javascript.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.1/mode/css/css.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize CodeMirror
+        var editor = CodeMirror.fromTextArea(document.getElementById('body'), {
+            mode: 'htmlmixed',
+            lineNumbers: true,
+            lineWrapping: true,
+            theme: 'default'
+        });
+        
+        // Preview functionality
+        document.getElementById('previewBtn').addEventListener('click', function() {
+            var subject = document.getElementById('subject').value;
+            var body = editor.getValue();
+            
+            // Replace placeholders with sample values
+            subject = subject.replace(/{{name}}/g, 'John Doe');
+            body = body.replace(/{{name}}/g, 'John Doe');
+            
+            // Update preview
+            document.getElementById('previewSubject').textContent = subject;
+            var iframe = document.getElementById('previewFrame');
+            
+            // Write content to iframe
+            iframe.contentWindow.document.open();
+            iframe.contentWindow.document.write(body);
+            iframe.contentWindow.document.close();
+            
+            // Show modal
+            var previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModal.show();
+        });
+        
+        // Form submission
+        document.getElementById('templateForm').addEventListener('submit', function() {
+            // Update the textarea with the editor content before submitting
+            editor.save();
+        });
+    });
+</script>
+{% endblock %}

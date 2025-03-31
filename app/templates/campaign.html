@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if campaign %}Edit Campaign{% else %}Create Campaign{% endif %} - Phishing Email Simulator
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>{% if campaign %}Edit Campaign{% else %}Create Campaign{% endif %}</h1>
+        <p>Set up your phishing campaign details, select a template, and add targets.</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <ul class="nav nav-tabs card-header-tabs" id="campaignTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active text-dark" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">Campaign Details</button>
+            </li>
+            {% if campaign %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-dark" id="targets-tab" data-bs-toggle="tab" data-bs-target="#targets" type="button" role="tab" aria-controls="targets" aria-selected="false">Targets</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-dark" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button" role="tab" aria-controls="schedule" aria-selected="false">Schedule & Send</button>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content" id="campaignTabsContent">
+            <!-- Campaign Details Tab -->
+            <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+                <form method="POST" action="{{ url_for('campaign.edit', id=campaign.id) if campaign else url_for('campaign.create_campaign') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Campaign Name</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ campaign.name if campaign else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ campaign.description if campaign else '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="template_id" class="form-label">Email Template</label>
+                        <select class="form-select" id="template_id" name="template_id" required>
+                            <option value="">Select a template</option>
+                            {% for t in templates %}
+                            <option value="{{ t.id }}" {% if campaign and campaign.template_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if templates|length == 0 %}
+                        <div class="form-text text-danger">
+                            You need to create at least one email template first.
+                            <a href="{{ url_for('template.create_template') }}">Create Template</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if campaign %}Update Campaign{% else %}Create Campaign{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            {% if campaign %}
+            <!-- Targets Tab -->
+            <div class="tab-pane fade" id="targets" role="tabpanel" aria-labelledby="targets-tab">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Add Individual Target</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('campaign.manage_targets', id=campaign.id) }}">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">Name</label>
+                                        <input type="text" class="form-control" id="name" name="name" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="email" name="email" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="department" class="form-label">Department</label>
+                                        <input type="text" class="form-control" id="department" name="department">
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">Add Target</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Import Targets from CSV</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('campaign.manage_targets', id=campaign.id) }}" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label for="csv_file" class="form-label">CSV File</label>
+                                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                                        <div class="form-text">
+                                            CSV should have columns: name, email, department (optional)
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">Import Targets</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Target List</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if targets and targets|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Department</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for target in targets %}
+                                    <tr>
+                                        <td>{{ target.name }}</td>
+                                        <td>{{ target.email }}</td>
+                                        <td>{{ target.department }}</td>
+                                        <td>
+                                            <form method="POST" action="{{ url_for('campaign.delete_target', campaign_id=campaign.id, target_id=target.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <p class="mb-0">No targets added yet. Add targets using the forms above.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Schedule & Send Tab -->
+            <div class="tab-pane fade" id="schedule" role="tabpanel" aria-labelledby="schedule-tab">
+                <form method="POST" action="{{ url_for('campaign.send_campaign', id=campaign.id) }}">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Schedule Campaign</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="scheduled_date" class="form-label">Date</label>
+                                        <input type="date" class="form-control" id="scheduled_date" name="scheduled_date" min="{{ now.strftime('%Y-%m-%d') }}">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="scheduled_time" class="form-label">Time</label>
+                                        <input type="time" class="form-control" id="scheduled_time" name="scheduled_time">
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">Schedule Campaign</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-warning">
+                                    <h5 class="mb-0">Send Now</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p>Send the campaign immediately to all targets.</p>
+                                    <div class="alert alert-warning">
+                                        <strong>Warning:</strong> This action cannot be undone. Make sure your campaign is ready before sending.
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button type="submit" name="send_now" value="1" class="btn btn-warning" onclick="return confirm('Are you sure you want to send this campaign now?')">
+                                            Send Campaign Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Campaign Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Campaign:</strong> {{ campaign.name }}</p>
+                                    <p><strong>Template:</strong> {{ campaign.template.name if campaign.template else 'None' }}</p>
+                                    <p><strong>Status:</strong> 
+                                        {% if campaign.status == 'draft' %}
+                                        <span class="badge bg-secondary">Draft</span>
+                                        {% elif campaign.status == 'scheduled' %}
+                                        <span class="badge bg-info">Scheduled for {{ campaign.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                        {% elif campaign.status == 'in_progress' %}
+                                        <span class="badge bg-warning">In Progress</span>
+                                        {% elif campaign.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Targets:</strong> {{ campaign.targets.count() }}</p>
+                                    <p><strong>Created:</strong> {{ campaign.created_at.strftime('%Y-%m-%d') }}</p>
+                                    {% if campaign.scheduled_at %}
+                                    <p><strong>Scheduled:</strong> {{ campaign.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+EOF

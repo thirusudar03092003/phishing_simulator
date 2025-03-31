@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Campaign Report - Phishing Email Simulator{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css">
+<style>
+    .stat-card {
+        border-left: 4px solid;
+        border-radius: 4px;
+    }
+    .stat-card-primary {
+        border-left-color: #0d6efd;
+    }
+    .stat-card-success {
+        border-left-color: #198754;
+    }
+    .stat-card-warning {
+        border-left-color: #ffc107;
+    }
+    .stat-card-danger {
+        border-left-color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>Campaign Report: {{ campaign.name }}</h1>
+        <p>View detailed statistics and results for your phishing campaign.</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('report.export_report', campaign_id=campaign.id) }}" class="btn btn-primary">Export Report (CSV)</a>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card stat-card-primary h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Targets</h5>
+                <h2 class="display-4">{{ total_targets }}</h2>
+                <p class="card-text">Recipients in this campaign</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card stat-card-success h-100">
+            <div class="card-body">
+                <h5 class="card-title">Opened</h5>
+                <h2 class="display-4">{{ opened_count }}</h2>
+                <p class="card-text">{{ "%.1f"|format(open_rate) }}% of recipients</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card stat-card-warning h-100">
+            <div class="card-body">
+                <h5 class="card-title">Clicked</h5>
+                <h2 class="display-4">{{ clicked_count }}</h2>
+                <p class="card-text">{{ "%.1f"|format(click_rate) }}% of recipients</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card stat-card-danger h-100">
+            <div class="card-body">
+                <h5 class="card-title">Submitted Data</h5>
+                <h2 class="display-4">{{ submitted_count }}</h2>
+                <p class="card-text">{{ "%.1f"|format(submission_rate) }}% of recipients</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Campaign Performance</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">User Response Funnel</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="funnelChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Detailed Results</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Opened</th>
+                        <th>Clicked</th>
+                        <th>Submitted Data</th>
+                        <th>Time to Click</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for target in campaign.targets %}
+                    {% set opened = campaign.click_events.filter_by(target_id=target.id, action='opened').first() %}
+                    {% set clicked = campaign.click_events.filter_by(target_id=target.id, action='clicked').first() %}
+                    {% set submitted = campaign.click_events.filter_by(target_id=target.id, action='submitted').first() %}
+                    <tr>
+                        <td>{{ target.name }}</td>
+                        <td>{{ target.email }}</td>
+                        <td>{{ target.department }}</td>
+                        <td>
+                            {% if opened %}
+                            <span class="badge bg-success">Yes</span>
+                            <small class="text-muted d-block">{{ opened.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if clicked %}
+                            <span class="badge bg-warning">Yes</span>
+                            <small class="text-muted d-block">{{ clicked.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if submitted %}
+                            <span class="badge bg-danger">Yes</span>
+                            <small class="text-muted d-block">{{ submitted.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if opened and clicked %}
+                            {% set time_diff = (clicked.timestamp - opened.timestamp).total_seconds() // 60 %}
+                            {{ time_diff }} minutes
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Performance Chart
+        var perfCtx = document.getElementById('performanceChart').getContext('2d');
+        var performanceChart = new Chart(perfCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Opened', 'Clicked', 'Submitted Data'],
+                datasets: [{
+                    label: 'Percentage of Recipients',
+                    data: [{{ open_rate }}, {{ click_rate }}, {{ submission_rate }}],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.6)',
+                        'rgba(255, 193, 7, 0.6)',
+                        'rgba(220, 53, 69, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Percentage (%)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // Funnel Chart
+        var funnelCtx = document.getElementById('funnelChart').getContext('2d');
+        var funnelChart = new Chart(funnelCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Targeted', 'Opened', 'Clicked', 'Submitted'],
+                datasets: [{
+                    label: 'Number of Recipients',
+                    data: [{{ total_targets }}, {{ opened_count }}, {{ clicked_count }}, {{ submitted_count }}],
+                    backgroundColor: [
+                        'rgba(13, 110, 253, 0.6)',
+                        'rgba(40, 167, 69, 0.6)',
+                        'rgba(255, 193, 7, 0.6)',
+                        'rgba(220, 53, 69, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(13, 110, 253, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Recipients'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
